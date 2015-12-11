@@ -119,6 +119,14 @@ class tm_DividedFile():
         else:
             return False
 
+    def __str__(self):
+        description = self.fileName + tm_com.line_feed
+        description += self.start + tm_com.line_feed
+        description += self.end + tm_com.line_feed
+        return description
+
+    __repr__ = __str__
+
 class tm_FileDataList(tm_HeapSortable):
     def __init__(self,folderPath):
         fileNames = tm_com.getFileNamesFromFolder(folderPath)
@@ -154,15 +162,15 @@ class tm_FileDataList(tm_HeapSortable):
 
             biggerArray = allLines[:litterSize]
             litterArray = allLines[litterSize:]
-
             os.remove(self.dataList[node].filePath)
             tm_com.writeLines(self.dataList[node].filePath,litterArray)
             os.remove(self.dataList[child].filePath)
             tm_com.writeLines(self.dataList[child].filePath,biggerArray)
+            self.dataList[node] = tm_DividedFile(self.dataList[node].fileFolder,self.dataList[node].fileName)
+            self.dataList[node] = tm_DividedFile(self.dataList[node].fileFolder,self.dataList[node].fileName)
 
     def write(self):
         for i in range(self.size):
-            print self.dataList[i].filePath
             os.rename(self.dataList[i].filePath, self.dataList[i].fileFolder + "sorted_" +str(i) )
 
 class tm_HeapSorter():
@@ -198,7 +206,6 @@ class tm_HeapSorter():
         return self.heapSortableObj.leftChlidIndex(index)
 
     def maxDown(self,position,endIndex):
-
         if self.hasRightChild(position,endIndex) and self.hasLeftChild(position,endIndex):
             if not self.leftChild(position) < self.rightChild(position):
                 if not self.item(position) > self.leftChild(position):
@@ -225,7 +232,7 @@ class tm_HeapSorter():
         self.buildHeap()
         endIndex = self.heapSortableObj.size - 1
         self.heapSortableObj.exchangeValue(0,endIndex)
-        while(endIndex > 0):
+        while(endIndex > 1):
             endIndex -= 1
             self.maxDown(0,endIndex)
             self.heapSortableObj.exchangeValue(0,endIndex)
@@ -252,21 +259,34 @@ def checkSort_Asc_Folder(folderPath):
     for fileName in fileNames:
         filePath = folderPath + fileName
         fileToSort = tm_SingleFile(filePath)
+        print filePath
         print checkSort_Asc(fileToSort)
 
 def checkSort_Asc(heapSortableObj):
     if isinstance(heapSortableObj,tm_HeapSortable):
         for i in range(heapSortableObj.size - 1):
-            if heapSortableObj.dataList[i+1] > heapSortableObj.dataList[i]:
+            if heapSortableObj.dataList[i+1] >= heapSortableObj.dataList[i]:
                 pass
             else:
-                # print str(i) + ' : ' + str(heapSortableObj.dataList[i])
-                # print str(i + 1) + ' : ' + str(heapSortableObj.dataList[i+1])
+                print heapSortableObj.dataList[i+1]
+                print heapSortableObj.dataList[i]
                 return False
         return True
     else:
         print('the value you pass id not a subclass of tm_HeaoSortable.')
 
+def checkSort_Des(heapSortableObj):
+    if isinstance(heapSortableObj,tm_HeapSortable):
+        for i in range(heapSortableObj.size - 1):
+            if heapSortableObj.dataList[i+1] <= heapSortableObj.dataList[i]:
+                pass
+            else:
+                print heapSortableObj.dataList[i+1]
+                print heapSortableObj.dataList[i]
+                return False
+        return True
+    else:
+        print('the value you pass id not a subclass of tm_HeaoSortable.')
 
 
 # filePath = '/Users/Teemo/datasFile/divideFiles/sourceData_list/sourceData_part_1'
@@ -280,21 +300,12 @@ def checkSort_Asc(heapSortableObj):
 # print(checkSort_Asc(simpleDataList))
 
 tempFilePath = '/Users/Teemo/datasFile/temp/'
-# fileNames = tm_com.getFileNamesFromFolder(tempFilePath)
-# print fileNames[0]
-# print fileNames[1]
-# h = []
-# h1 = tm_DividedFile(tempFilePath + fileNames[0])
-# h2 = tm_DividedFile(tempFilePath + fileNames[1])
-# h.append(h1)
-# h.append(h2)
-# hb = tm_FileDataList(h)
-# hb.exchangeValue(0,1)
-# print checkSort_Asc(hb)
+
 HeapSortFilesUnderFolder(tempFilePath)
 fileListToSort = tm_FileDataList(tempFilePath)
 sorter = tm_HeapSorter(fileListToSort)
 sorter.maxSort()
 sorter.write()
+checkSort_Asc_Folder(tempFilePath)
 
 
