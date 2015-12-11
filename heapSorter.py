@@ -80,18 +80,26 @@ class tm_SingleFile(tm_HeapSortable):
         print 'write done : ' + self.name
 
 class tm_DividedFile():
-    def __init__(self,filePath):
-        self.filePath = filePath
+    def __init__(self,fileFolder,fileName):
+        self.fileFolder = fileFolder
+        self.fileName = fileName
+        self.filePath = fileFolder + fileName
         self.lines = tm_com.getLinesFromFile(self.filePath)
         self.size = len(self.lines)
         self.start = self.lines[0]
         self.end = self.lines[-1]
 
     def __lt__(self, other):
-        return not self > other
+        if self.end < other.start:
+            return True
+        else:
+            return False
 
     def __le__(self, other):
-        return not self >= other
+        if self.end <= other.start:
+            return True
+        else:
+            return False
 
     def __gt__(self, other):
         if self.start > other.end:
@@ -116,7 +124,7 @@ class tm_FileDataList(tm_HeapSortable):
         fileNames = tm_com.getFileNamesFromFolder(folderPath)
         self.dataList = []
         for fileName in fileNames:
-            self.dataList.append(tm_DividedFile(folderPath + fileName))
+            self.dataList.append(tm_DividedFile(folderPath,fileName))
         self.size = len(self.dataList)
 
     def exchangeValue(self,node,child):
@@ -155,7 +163,7 @@ class tm_FileDataList(tm_HeapSortable):
     def write(self):
         for i in range(self.size):
             print self.dataList[i].filePath
-            os.rename(self.dataList[i].filePath,"sorted_" +str(i) )
+            os.rename(self.dataList[i].filePath, self.dataList[i].fileFolder + "sorted_" +str(i) )
 
 class tm_HeapSorter():
 
@@ -192,16 +200,16 @@ class tm_HeapSorter():
     def maxDown(self,position,endIndex):
 
         if self.hasRightChild(position,endIndex) and self.hasLeftChild(position,endIndex):
-            if self.leftChild(position) > self.rightChild(position):
-                if self.item(position) < self.leftChild(position):
+            if not self.leftChild(position) < self.rightChild(position):
+                if not self.item(position) > self.leftChild(position):
                     self.exchangeValue(position,self.leftChlidIndex(position))
                     self.maxDown(self.leftChlidIndex(position),endIndex)
             else:
-                if self.item(position) < self.rightChild(position):
+                if not self.item(position) > self.rightChild(position):
                     self.exchangeValue(position,self.rightChildIndex(position))
                     self.maxDown(self.rightChildIndex(position),endIndex)
         elif self.hasLeftChild(position,endIndex):
-            if self.item(position) < self.leftChild(position):
+            if not self.item(position) > self.leftChild(position):
                 self.exchangeValue(position,self.leftChlidIndex(position))
                 self.maxDown(self.leftChlidIndex(position),endIndex)
 
@@ -283,7 +291,7 @@ tempFilePath = '/Users/Teemo/datasFile/temp/'
 # hb = tm_FileDataList(h)
 # hb.exchangeValue(0,1)
 # print checkSort_Asc(hb)
-# HeapSortFilesUnderFolder(tempFilePath)
+HeapSortFilesUnderFolder(tempFilePath)
 fileListToSort = tm_FileDataList(tempFilePath)
 sorter = tm_HeapSorter(fileListToSort)
 sorter.maxSort()
