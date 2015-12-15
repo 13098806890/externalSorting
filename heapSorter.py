@@ -4,6 +4,8 @@ import tm_com
 import time
 import someOldCodes
 
+debug = False
+
 
 #class
 from abc import ABCMeta, abstractmethod
@@ -60,6 +62,10 @@ class tm_HeapSortable():
     def exchangeValue(self,node,child):
         pass
 
+    @abstractmethod
+    def putMaxValueToNode(self,node,child):
+        pass
+
 class tm_SingleFile(tm_HeapSortable):
 
     def __init__(self,filePath):
@@ -70,10 +76,14 @@ class tm_SingleFile(tm_HeapSortable):
         self.dataList = lines
         self.size = len(lines)
 
-    def exchangeValue(self,toIndex,fromIndex):
-        temp = self.dataList[fromIndex]
-        self.dataList[fromIndex] = self.dataList[toIndex]
-        self.dataList[toIndex] = temp
+    def exchangeValue(self,node,child):
+        temp = self.dataList[child]
+        self.dataList[child] = self.dataList[node]
+        self.dataList[node] = temp
+
+    def putMaxValueToNode(self,node,child):
+        if self.dataList[node] < self.dataList[child]:
+            self.exchangeValue(node,child)
 
     def write(self):
         tm_com.writeLines(self.filePath,self.dataList)
@@ -134,40 +144,53 @@ class tm_FileDataList(tm_HeapSortable):
         for fileName in fileNames:
             self.dataList.append(tm_DividedFile(folderPath,fileName))
         self.size = len(self.dataList)
+        self.name = folderPath
 
-    def exchangeValue(self,node,child):
+    def putMaxValueToNode(self,node,child):
+        if debug:
+            print '**************************'
+            print 'exchange : ' + tm_com.line_feed
+            print self.dataList[node]
+            print self.dataList[child]
         nodeIndexFileSize = self.dataList[node].size
         childIndexFileSize = self.dataList[child].size
-        litterSize = min(nodeIndexFileSize,childIndexFileSize)
+        biggerSize = max(nodeIndexFileSize,childIndexFileSize)
         allLines = []
-        if self.dataList[node].end < self.dataList[child].start:
-            tempFilePath = self.dataList[node].filePath + 'temp'
-            os.rename(self.dataList[node].filePath,tempFilePath)
-            os.rename(self.dataList[child].filePath,self.dataList[node].filePath)
-            os.rename(tempFilePath,self.dataList[child].filePath)
-        else:
-            i = 0
-            j = 0
-            while i < self.dataList[node].size and j < self.dataList[child].size:
-                if self.dataList[node].lines[i] < self.dataList[child].lines[j]:
-                    allLines.append(self.dataList[node].lines[i])
-                    i += 1
-                else:
-                    allLines.append(self.dataList[child].lines[j])
-                    j += 1
-            if i < nodeIndexFileSize:
-                allLines.extend(self.dataList[node].lines[i:])
+        i = 0
+        j = 0
+        while i < self.dataList[node].size and j < self.dataList[child].size:
+            if self.dataList[node].lines[i] < self.dataList[child].lines[j]:
+                allLines.append(self.dataList[node].lines[i])
+                i += 1
             else:
-                allLines.extend(self.dataList[child].lines[j:])
+                allLines.append(self.dataList[child].lines[j])
+                j += 1
+        if i < nodeIndexFileSize:
+            allLines.extend(self.dataList[node].lines[i:])
+        else:
+            allLines.extend(self.dataList[child].lines[j:])
 
-            biggerArray = allLines[:litterSize]
-            litterArray = allLines[litterSize:]
-            os.remove(self.dataList[node].filePath)
-            tm_com.writeLines(self.dataList[node].filePath,litterArray)
-            os.remove(self.dataList[child].filePath)
-            tm_com.writeLines(self.dataList[child].filePath,biggerArray)
-            self.dataList[node] = tm_DividedFile(self.dataList[node].fileFolder,self.dataList[node].fileName)
-            self.dataList[node] = tm_DividedFile(self.dataList[node].fileFolder,self.dataList[node].fileName)
+        litterArray = allLines[:biggerSize]
+        biggerArray = allLines[biggerSize:]
+        os.remove(self.dataList[node].filePath)
+        tm_com.writeLines(self.dataList[node].filePath,biggerArray)
+        os.remove(self.dataList[child].filePath)
+        tm_com.writeLines(self.dataList[child].filePath,litterArray)
+        self.dataList[node] = tm_DividedFile(self.dataList[node].fileFolder,self.dataList[node].fileName)
+        self.dataList[child] = tm_DividedFile(self.dataList[child].fileFolder,self.dataList[child].fileName)
+        if debug:
+            print 'after exchange: ' + tm_com.line_feed
+            print self.dataList[node]
+            print self.dataList[child]
+            print '**************************'
+
+    def exchangeValue(self,node,child):
+        os.remove(self.dataList[node].filePath)
+        tm_com.writeLines(self.dataList[node].filePath,self.dataList[child].lines)
+        os.remove(self.dataList[child].filePath)
+        tm_com.writeLines(self.dataList[child].filePath,self.dataList[node].lines)
+        self.dataList[node] = tm_DividedFile(self.dataList[node].fileFolder,self.dataList[node].fileName)
+        self.dataList[child] = tm_DividedFile(self.dataList[child].fileFolder,self.dataList[child].fileName)
 
     def write(self):
         for i in range(self.size):
@@ -205,34 +228,43 @@ class tm_HeapSorter():
     def leftChlidIndex(self,index):
         return self.heapSortableObj.leftChlidIndex(index)
 
+    def putMaxValueToNode(self,node,child):
+        self.heapSortableObj.putMaxValueToNode(node,child)
+
     def maxDown(self,position,endIndex):
         if self.hasRightChild(position,endIndex) and self.hasLeftChild(position,endIndex):
-            if not self.leftChild(position) < self.rightChild(position):
-                if not self.item(position) > self.leftChild(position):
-                    self.exchangeValue(position,self.leftChlidIndex(position))
+            if self.leftChild(position) >= self.rightChild(position):
+                if not self.item(position) >= self.leftChild(position):
+                    self.putMaxValueToNode(position,self.leftChlidIndex(position))
                     self.maxDown(self.leftChlidIndex(position),endIndex)
-            else:
-                if not self.item(position) > self.rightChild(position):
-                    self.exchangeValue(position,self.rightChildIndex(position))
+
+            elif self.rightChild(position) >= self.leftChild(position):
+                if not self.item(position) >= self.rightChild(position):
+                    self.putMaxValueToNode(position,self.rightChildIndex(position))
                     self.maxDown(self.rightChildIndex(position),endIndex)
+
+            elif not self.leftChlidIndex(position) == self.rightChildIndex(position):
+                self.putMaxValueToNode(self.leftChlidIndex(position),self.rightChildIndex(position))
+                self.putMaxValueToNode(position,self.leftChlidIndex(position))
+                self.maxDown(self.leftChlidIndex(position),endIndex)
+                self.maxDown(self.rightChildIndex(position),endIndex)
+
         elif self.hasLeftChild(position,endIndex):
-            if not self.item(position) > self.leftChild(position):
-                self.exchangeValue(position,self.leftChlidIndex(position))
+            if not self.item(position) >= self.leftChild(position):
+                self.putMaxValueToNode(position,self.leftChlidIndex(position))
                 self.maxDown(self.leftChlidIndex(position),endIndex)
 
     def buildHeap(self):
         endIndex = self.heapSortableObj.size - 1
         for i in range(self.heapSortableObj.getLastParentNodeIndex(endIndex) + 1)[::-1]:
+            # self.maxDown(i,endIndex)
             self.maxDown(i,endIndex)
-        # for line in self.heapSortableObj.dataList:
-        #     print line
-
 
     def maxSort(self):
         self.buildHeap()
         endIndex = self.heapSortableObj.size - 1
         self.heapSortableObj.exchangeValue(0,endIndex)
-        while(endIndex > 1):
+        while(endIndex > 0):
             endIndex -= 1
             self.maxDown(0,endIndex)
             self.heapSortableObj.exchangeValue(0,endIndex)
@@ -298,6 +330,9 @@ def checkSort_Des(heapSortableObj):
 # end = time.time()
 # print(str(end - start))
 # print(checkSort_Asc(simpleDataList))
+start = time.time()
+
+
 
 tempFilePath = '/Users/Teemo/datasFile/temp/'
 
@@ -306,6 +341,11 @@ fileListToSort = tm_FileDataList(tempFilePath)
 sorter = tm_HeapSorter(fileListToSort)
 sorter.maxSort()
 sorter.write()
-checkSort_Asc_Folder(tempFilePath)
+
+# checkSort_Asc_Folder(tempFilePath)
+
+
+end = time.time()
+print(str(end - start))
 
 
