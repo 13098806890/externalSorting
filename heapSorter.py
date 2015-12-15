@@ -264,7 +264,7 @@ class tm_HeapSorter():
         self.buildHeap()
         endIndex = self.heapSortableObj.size - 1
         self.heapSortableObj.exchangeValue(0,endIndex)
-        while(endIndex > 0):
+        while(endIndex > 1):
             endIndex -= 1
             self.maxDown(0,endIndex)
             self.heapSortableObj.exchangeValue(0,endIndex)
